@@ -2,6 +2,7 @@ import maya.cmds as mc
 import math
 from maya.OpenMaya import MVector, MMatrix, MScriptUtil
 
+
 #mc.curve(name ='myCurve', p = [(0, 1, 0), (0, 0, 0), (1, 1, 1), (1, 2, 3)])
 
 p1 = MVector(*mc.getAttr('myCurve.cv[0]')[0])
@@ -30,6 +31,7 @@ def skewSymmCross(inVect):
         setCell(m, 0, i, i)
     return m
 
+#uses a crazy math magic to find the rotation matrix :-)
 def findRotation(inV1, inV2):
     cross = inV1 ^ inV2
     theta = inV1.angle(inV2)
@@ -40,7 +42,7 @@ def findRotation(inV1, inV2):
     m = MMatrix() + skew +( skewSQ *(1 / 1 + c))
     return m
     
-    
+#helper function to print out matrices
 def printMatrix(inM):
     for i in range(4):
         for j in range(4):
