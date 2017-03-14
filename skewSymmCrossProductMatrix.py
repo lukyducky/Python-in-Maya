@@ -8,23 +8,26 @@ p1 = MVector(*mc.getAttr('myCurve.cv[0]')[0])
 p2 = MVector(*mc.getAttr('myCurve.cv[3]')[0])
 
 
+def printVect(inVect):
+    print '(', inVect.x, inVect.y, inVect.z, ')'    
+
 #to set Values of the matrix:
 
 def setCell(inMat, inVal, inRow, inCol):
-    MScriptUtil.setDoubleArray(inMat[inCol], inCol, inVal)
+    MScriptUtil.setDoubleArray(inMat[inRow], inCol, inVal)
 
 
 #assumes input is a vector. spits out the skew-symmetric cross product matrix
 def skewSymmCross(inVect): 
     m = MMatrix() #CTOR: identity matrix
-    m[1][0] = inVect.z #apparently you can't access like this why maya
-    m[2][0] = -inVect.y
-    m[2][1] = inVect.x
-    m[0][1] = -inVect.z
-    m[0][1] = inVect.y
-    m[1][2] = -inVect.x
+    setCell(m, inVect.z, 1, 0) #3
+    setCell(m, -inVect.y, 2, 0)
+    setCell(m, inVect.x, 2, 1)
+    setCell(m, -inVect.z, 0, 1) #3
+    setCell(m, inVect.y, 0, 2)
+    setCell(m, -inVect.x, 1, 2)
     for i in range(4):
-        m[i][i] = 0
+        setCell(m, 0, i, i)
     return m
 
 def findRotation(inV1, inV2):
@@ -32,7 +35,10 @@ def findRotation(inV1, inV2):
     theta = inV1.angle(inV2)
     s = cross.length() * math.degrees(math.sin(theta))
     c = inV1 * inV2 * math.degrees(math.cos(theta))
-    #m = MMatrix() + 
+    skew = skewSymmCross(cross)
+    skewSQ = skew * skew
+    m = MMatrix() + skew +( skewSQ *(1 / 1 + c))
+    return m
     
     
 def printMatrix(inM):
@@ -40,9 +46,18 @@ def printMatrix(inM):
         for j in range(4):
             print inM(i,j),
         print
+                
+                
+print "p2:"
+print printVect(p2)
+                
 mat = MMatrix()
 printMatrix(mat)
-setCell(mat, 15, 2, 2)
-printMatrix(mat)
-#skewSymmCross(p2)
-findRotation(p1, p2)
+matS = skewSymmCross(p2)
+
+
+print "skew-symmetric cross product matrix:"
+printMatrix(matS)
+
+print "did we find the rotation yet"
+printMatrix(findRotation(p1, p2))
