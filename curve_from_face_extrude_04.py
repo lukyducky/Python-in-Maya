@@ -39,12 +39,12 @@ v1 = MVector(*mc.pointPosition(vertList[0]))
 
 
 #storing the 1st CV into Vectors for easy mathing
-p1 = MVector(*mc.getAttr('myCurve.cv[0]')[0])<- first point of curve
+p1 = MVector(*mc.getAttr('myCurve.cv[0]')[0])
 
 
 #duplicates original curve, & translates it.  
 mc.duplicate('myCurve', name = 'dCurve01')
 mc.xform('dCurve01', translation = [v1.x, v1.y, v1.z]) 
-mc.xform('dCurve01', matrix =
+mc.xform('dCurve01', matrix = #get rotation from the curve to the normal of the face...
 #JUST GET THE ROTATION TRANSFORMATION AND XFORM IT AGAIN.  OK.  cool.
 
