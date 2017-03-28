@@ -60,7 +60,7 @@ def printVect(inVect):
     getTangent(bCurve): finds the tangent vector of the first point of the inputted curve
     PARAMETERS: a curve
     RETURNS: an MVector
-""""
+"""
 def getTangent(bCurve):
     p1 = MVector(*mc.getAttr(bCurve + '.cv[0]')[0])
     p2 = MVector(*mc.getAttr(bCurve + '.cv[1]')[0])
