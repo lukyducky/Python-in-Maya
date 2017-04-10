@@ -166,7 +166,9 @@ def curveMaker(inCurve):
 ###ui stuff?
 cmds.window(title = "curveMaker", width = 300, height = 200)
 cmds.columnLayout( "testColumn", adjustableColumn = True)
-cmds.text("curveMaker", label = "curveMaker: Select the curve & faces to extrude from", width = 20, height = 20, backgroundColor = [0.2, 0.2, 0.2], parent = "testColumn")
+cmds.text(label = "curveMaker: Select the curve & faces to extrude from", width = 20, height = 20, backgroundColor = [0.2, 0.2, 0.2], parent = "testColumn")
+mc.textField("curveNameInput", text = "Input name here")
+cName = 'mc.textField("curveNameInput", query = True, value = True)'
 cmds.button("curveButton", label = "OK", width = 50, height = 20, backgroundColor = [0.2, 0.2, 0.2], parent = "testColumn", command = 'curveMaker(curveSelect())')
 
 
