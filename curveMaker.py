@@ -2,6 +2,15 @@ import maya.cmds as mc
 import math
 from maya.OpenMaya import MVector, MFloatMatrix
 import pymel.core as pm
+import os
+import sys
+
+#home = os.getenv("HOME")
+#user = os.geteng("USER")
+#sys.path.appent(os.path.join(home:home.find(user), user, "Desktop"))
+
+
+
 """
 NAME: 
     curveMaker.
@@ -11,6 +20,7 @@ AUTHOR:
 USAGE: 
     Given a curve and a selection of faces, will duplicate the curves out of the vertices from the selection
 """
+
 
 """
     getPolyInfo:
@@ -31,6 +41,8 @@ def flattenList(inVertList):
     exp = mc.ls(inVertList, flatten = True)
     mc.select(clear = True)
     return exp
+    
+    
 """
     getNorm(inList) gets the average normal of the vertex.  
     PARAMETERS: list of vertex normals from mc.polyNormalperVertex(), which gives ALL normals of verticies.
@@ -98,8 +110,6 @@ def findRotation(inV1, inV2):
     skewSQ = skew * skew
     m = MMatrix() + skew +( skewSQ *(1 / 1 + c))
     return m
-
-
     
 #helper function to print out matrices
 def printMatrix(inM):
@@ -129,25 +139,43 @@ def setPivotCurve():
 
 #mc.polySphere()
 #mc.curve(name ='myCurve', p = [(4, 1, 2), (2, 2, 7), (0, 1, 4), (-1, 2, 3)])
+"""
+curveSelect()
 
+from the current selection, pulls out the name of the curve. assumes that there's only one curve.
+
+"""
 def curveSelect():
     selList = mc.ls(sl = True, type = 'nurbsCurve', dag = True)
     return selList[0].split('|')[0]
 
-curveSelect()
+#curveSelect()
+"""
+curveMaker()
+
+>>where the magic happens.
+
+meant to be used w/the GUI: so takes in user input and does the duplication of the curve, and the moving and...
+
+eventually rotation
+>>
 
 
-def curveMaker(inCurve):
+"""
+def curveMaker():
+    inCurve = mc.textField("curveNameInput", query = True, text = True)
     cTanVect = getTangent(inCurve)
     cTanVect.normalize()    
     p1 = MVector(*mc.getAttr(inCurve+'.cv[0]')[0])
     vertList = mc.polyListComponentConversion(ff = True, tv = True) #gets verts from selected faces
-    #flatList = flattenList(vertList)
+    flatList = flattenList(vertList)
+    print vertList
+    print flatList
     mc.select(clear = True)
-    for i in range(len(vertList)): #list is not flattened...
+    for i in range(len(flatList)): #list is not flattened...
         
-        v1 = MVector(*mc.pointPosition(vertList[i]))
-        vNorm = getNorm(getPolyInfo(vertList, i))
+        v1 = MVector(*mc.pointPosition(flatList[i]))
+        vNorm = getNorm(getPolyInfo(flatList, i))
         mc.select(clear = True)
         vNorm.normalize()
         mc.duplicate(inCurve, name = 'dCurve' + str(i))
@@ -168,13 +196,11 @@ cmds.window(title = "curveMaker", width = 300, height = 200)
 cmds.columnLayout( "testColumn", adjustableColumn = True)
 cmds.text(label = "curveMaker: Select the curve & faces to extrude from", width = 20, height = 20, backgroundColor = [0.2, 0.2, 0.2], parent = "testColumn")
 mc.textField("curveNameInput", text = "Input name here")
-cName = 'mc.textField("curveNameInput", query = True, value = True)'
-cmds.button("curveButton", label = "OK", width = 50, height = 20, backgroundColor = [0.2, 0.2, 0.2], parent = "testColumn", command = 'curveMaker(curveSelect())')
-
+cName = mc.textField("curveNameInput", query = True, text = True)
+print cName
+cmds.button("curveButton", label = "OK", width = 50, height = 20, backgroundColor = [0.2, 0.2, 0.2], parent = "testColumn", command = 'curveMaker()')
 
 cmds.showWindow()
 
-
-
-curveMaker('myCurve')
+#curveMaker('myCurve')
 
