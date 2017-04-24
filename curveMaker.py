@@ -1,14 +1,9 @@
 import maya.cmds as mc
 import math
-from maya.OpenMaya import MVector, MFloatMatrix
+from maya.OpenMaya import MVector, MFloatMatrix, MMatrix, MScriptUtil
 import pymel.core as pm
 import os
 import sys
-
-#home = os.getenv("HOME")
-#user = os.geteng("USER")
-#sys.path.appent(os.path.join(home:home.find(user), user, "Desktop"))
-
 
 
 """
@@ -85,10 +80,10 @@ def setCell(inMat, inVal, inRow, inCol):
 """
 def skewSymmCross(inVect): 
     m = MMatrix() #CTOR: identity matrix
-    setCell(m, inVect.z, 1, 0) #3
+    setCell(m, inVect.z, 1, 0)
     setCell(m, -inVect.y, 2, 0)
     setCell(m, inVect.x, 2, 1)
-    setCell(m, -inVect.z, 0, 1) #3
+    setCell(m, -inVect.z, 0, 1) 
     setCell(m, inVect.y, 0, 2)
     setCell(m, -inVect.x, 1, 2)
     for i in range(4):
@@ -101,6 +96,7 @@ def skewSymmCross(inVect):
     RETURNS: MMatrix
 
 """
+
 def findRotation(inV1, inV2):
     cross = inV1 ^ inV2
     theta = inV1.angle(inV2)
@@ -108,15 +104,41 @@ def findRotation(inV1, inV2):
     c = (inV1 * inV2 )* math.degrees(math.cos(theta))
     skew = skewSymmCross(cross)
     skewSQ = skew * skew
-    m = MMatrix() + skew +( skewSQ *(1 / 1 + c))
+    m = MMatrix() + skew +( skewSQ *((1 - c)/ (s * s)))
     return m
+    """
+    
+    #trying a different rotation matrix, 
+    #assumes T-> thing to rotate to; N -> vect of thing to rotate
+def findRotation(T, N): 
+    B = T ^ N #getting the binormal
+    B.normalize()
+    m = MMatrix() #makes an identity matrix
+    setCell(m, T.x, 0, 0)
+    setCell(m, T.y, 0, 1)
+    setCell(m, T.z, 0, 2)
+    setCell(m, N.x, 1, 0)
+    setCell(m, N.y, 1, 1)
+    setCell(m, N.z, 1, 2)
+    setCell(m, B.x, 2, 0)
+    setCell(m, B.y, 2, 1)
+    setCell(m, B.z, 2, 2)
+    for i in range(4):
+        setCell(m, 0, i, 3)
+        setCell(m, 0, 3, i)
+    setCell(m, 1, 3, 3)
+    return m
+    
+    """
     
 #helper function to print out matrices
 def printMatrix(inM):
     for i in range(4):
         for j in range(4):
+            
             print inM(i,j),
         print
+        
         
 """
     flatMatrix(inM) takes in a MMatrix and flattens it to a list, to be read by xForm
@@ -127,7 +149,7 @@ def flatMatrix(inM):
     flatList = []
     for i in range(4):
         for j in range(4):
-            flatList.append(inM(i, j))
+            flatList.append(inM(j, i))
     return flatList
 
 #function to set the pivot of your curve to the first CV
@@ -139,6 +161,7 @@ def setPivotCurve():
 
 #mc.polySphere()
 #mc.curve(name ='myCurve', p = [(4, 1, 2), (2, 2, 7), (0, 1, 4), (-1, 2, 3)])
+
 """
 curveSelect()
 
@@ -160,47 +183,61 @@ meant to be used w/the GUI: so takes in user input and does the duplication of t
 eventually rotation
 >>
 
-
 """
+
 def curveMaker():
     inCurve = mc.textField("curveNameInput", query = True, text = True)
-    cTanVect = getTangent(inCurve)
-    cTanVect.normalize()    
+    #cTanVect = getTangent(inCurve)
+    #cTanVect.normalize()    
     p1 = MVector(*mc.getAttr(inCurve+'.cv[0]')[0])
     vertList = mc.polyListComponentConversion(ff = True, tv = True) #gets verts from selected faces
     flatList = flattenList(vertList)
     print vertList
     print flatList
     mc.select(clear = True)
-    for i in range(len(flatList)): #list is not flattened...
-        
+    for i in range(len(flatList)): 
+        cName = 'dCurve' + str(i)
         v1 = MVector(*mc.pointPosition(flatList[i]))
         vNorm = getNorm(getPolyInfo(flatList, i))
         mc.select(clear = True)
         vNorm.normalize()
-        mc.duplicate(inCurve, name = 'dCurve' + str(i))
-        mc.select('dCurve' + str(i))
+        mc.duplicate(inCurve, name = cName)
+        mc.select(cName)
         setPivotCurve()
         mc.select(clear = True)
-        mc.move( v1.x, v1.y, v1.z, 'dCurve' + str(i), rpr=1) 
-         
+        mc.move( v1.x, v1.y, v1.z, cName, rpr=1)
+        cTanVect = getTangent(cName)
+        cTanVect.normalize()
+        
+        mc.makeIdentity(cName, apply = True, translate = True)
+        
+        rotMat = findRotation(vNorm, cTanVect) 
         #rotMat = findRotation(cTanVect, vNorm)
         #printMatrix(rotMat)
-        rotV = cTanVect.rotateBy(cTanVect.rotateTo(vNorm))
-        rotV.normalize()
-        mc.xform('dCurve' + str(i), rotation = [rotV.x, rotV.y, rotV.z]) 
-        #mc.xform('dCurve01', matrix = flatMatrix(rotMat))
+        #rotV = cTanVect.rotateBy(cTanVect.rotateTo(vNorm))
+        #rotV.normalize()
+        #mc.xform('dCurve' + str(i), r = 1, rotateAxis = [rotV.x, rotV.y, rotV.z]) 
+        mc.xform(cName, matrix = flatMatrix(rotMat), r = True)
+        #mc.makeIdentity(cName, scale = True)
+
+
+#home = os.getenv("HOME")
+#user = os.geteng("USER")
+#sys.path.appent(os.path.join(home:home.find(user), user, "Desktop"))
+
+
+
+
 
 ###ui stuff?
-cmds.window(title = "curveMaker", width = 300, height = 200)
-cmds.columnLayout( "testColumn", adjustableColumn = True)
-cmds.text(label = "curveMaker: Select the curve & faces to extrude from", width = 20, height = 20, backgroundColor = [0.2, 0.2, 0.2], parent = "testColumn")
+mc.window(title = "curveMaker", width = 300, height = 200)
+mc.columnLayout( "testColumn", adjustableColumn = True)
+mc.text(label = "curveMaker: Select the curve & faces to extrude from", width = 20, height = 20, backgroundColor = [0.2, 0.2, 0.2], parent = "testColumn")
 mc.textField("curveNameInput", text = "Input name here")
 cName = mc.textField("curveNameInput", query = True, text = True)
 print cName
-cmds.button("curveButton", label = "OK", width = 50, height = 20, backgroundColor = [0.2, 0.2, 0.2], parent = "testColumn", command = 'curveMaker()')
-
-cmds.showWindow()
+mc.button("curveButton", label = "OK", width = 50, height = 20, backgroundColor = [0.2, 0.2, 0.2], parent = "testColumn", command = 'curveMaker()')
+mc.showWindow()
 
 #curveMaker('myCurve')
 
