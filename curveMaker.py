@@ -96,7 +96,7 @@ def skewSymmCross(inVect):
     RETURNS: MMatrix
 
 """
-
+"""
 def findRotation(inV1, inV2):
     cross = inV1 ^ inV2
     theta = inV1.angle(inV2)
@@ -129,7 +129,7 @@ def findRotation(T, N):
     setCell(m, 1, 3, 3)
     return m
     
-    """
+
     
 #helper function to print out matrices
 def printMatrix(inM):
@@ -159,8 +159,10 @@ def setPivotCurve():
         pos = i.getShape().getCV(0)
         i.setPivots(pos)
 
-#mc.polySphere()
-#mc.curve(name ='myCurve', p = [(4, 1, 2), (2, 2, 7), (0, 1, 4), (-1, 2, 3)])
+def getPivCurve(inCurve):
+    return MVector(*mc.getAttr(inCurve + '.cv[0]')[0])
+
+
 
 """
 curveSelect()
@@ -173,6 +175,7 @@ def curveSelect():
     return selList[0].split('|')[0]
 
 #curveSelect()
+
 """
 curveMaker()
 
@@ -192,8 +195,6 @@ def curveMaker():
     p1 = MVector(*mc.getAttr(inCurve+'.cv[0]')[0])
     vertList = mc.polyListComponentConversion(ff = True, tv = True) #gets verts from selected faces
     flatList = flattenList(vertList)
-    print vertList
-    print flatList
     mc.select(clear = True)
     for i in range(len(flatList)): 
         cName = 'dCurve' + str(i)
@@ -209,16 +210,26 @@ def curveMaker():
         cTanVect = getTangent(cName)
         cTanVect.normalize()
         
-        mc.makeIdentity(cName, apply = True, translate = True)
+        mc.makeIdentity(cName, apply = True, translate = True) #freeze translations
+               
+        """
+        mc.select(cName)
+        setPivotCurve()
+        mc.select(clear = True)
+        """
         
-        rotMat = findRotation(vNorm, cTanVect) 
-        #rotMat = findRotation(cTanVect, vNorm)
+        #rotMat = findRotation(vNorm, cTanVect) #A
+        rotMat = findRotation(cTanVect, vNorm) #B
         #printMatrix(rotMat)
         #rotV = cTanVect.rotateBy(cTanVect.rotateTo(vNorm))
         #rotV.normalize()
-        #mc.xform('dCurve' + str(i), r = 1, rotateAxis = [rotV.x, rotV.y, rotV.z]) 
-        mc.xform(cName, matrix = flatMatrix(rotMat), r = True)
-        #mc.makeIdentity(cName, scale = True)
+        #printVect(rotV)
+        #mc.xform(cName, r = 1, rotation = [rotV.x, rotV.y, rotV.z]) 
+        pivot = getPivCurve(cName)
+        mc.xform(cName, matrix = flatMatrix(rotMat), cp = False)
+        #, piv = [pivot.x, pivot.y, pivot.z]
+        mc.makeIdentity(cName, scale = True) #scale it down
+        
 
 
 #home = os.getenv("HOME")
@@ -227,7 +238,8 @@ def curveMaker():
 
 
 
-
+mc.polyCube(n= 'name')
+mc.move(0.77, 0.58, -0.25)
 
 ###ui stuff?
 mc.window(title = "curveMaker", width = 300, height = 200)
@@ -240,4 +252,5 @@ mc.button("curveButton", label = "OK", width = 50, height = 20, backgroundColor 
 mc.showWindow()
 
 #curveMaker('myCurve')
+
 
