@@ -47,7 +47,6 @@ def flattenList(inVertList):
 """
 def getNorm(inList): #assumes there is at least 1 vert in the list. 
     x, y, z = 0, 0, 0
-    print x, y, z
     s = 0 #to count # of vects
     while (len(inList) > 0):
         x += inList[0]
@@ -104,6 +103,7 @@ def findRotation(inV1, inV2): #from inV1 to inV2
     theta = inV1.angle(inV2)
     s = cross.length() * math.sin(math.degrees(theta))
     c = (inV1 * inV2 )* math.sin(math.degrees(theta))
+    cross.normalize()
     skew = skewSymmCross(cross)
     skewSQ = skew * skew
     m = MMatrix() + skew +( skewSQ *((1 - c)/ (s * s)))
@@ -139,9 +139,8 @@ def findRotation(T, N):
 #helper function to print out matrices
 def printMatrix(inM):
     for i in range(4):
-        for j in range(4):
-            
-            print inM(i,j),
+        for j in range(4):         
+            print inM(j,i),
         print
         
         
@@ -165,7 +164,7 @@ def setPivotCurve():
         i.setPivots(pos)
 
 def getPivCurve(inCurve):
-    return MVector(*mc.getAttr(inCurve + '.cv[0]')[0])
+    printVect(MVector(*mc.getAttr(inCurve + '.cv[0]'[0])))
 
 
 """
@@ -202,11 +201,11 @@ def curveMaker():
     mc.select(clear = True)
     for i in range(len(flatList)): 
         cName = 'dCurve' + str(i)
+
         v1 = MVector(*mc.pointPosition(flatList[i]))
         vNorm = getNorm(getPolyInfo(flatList, i))
-
-        mc.select(clear = True)
         vNorm.normalize()
+        mc.select(clear = True)
         mc.duplicate(inCurve, name = cName)
         mc.select(cName)
         setPivotCurve()
@@ -216,17 +215,20 @@ def curveMaker():
         #cTanVect.normalize()
         cTan= mc.pointOnCurve(cName, nt = True )
         cTanVect = MVector(cTan[0], cTan[1], cTan[2])
-
+        #cTanVect.normalize()
         rotMat = findRotation(cTanVect, vNorm) #B
 
-        #printMatrix(rotMat)
-        pivot = getPivCurve(cName)
+        printMatrix(rotMat)
+        piv = mc.pointOnCurve(cName, position = True)
+        pivot = MVector(piv[0], piv[1], piv[2])
+        #getPivCurve(cName)
         #printVect(pivot)
-        mc.xform(cName, matrix = flatMatrix(rotMat),  ws = True, piv = (pivot.x, pivot.y, pivot.z))
-        mc.move( v1.x, v1.y, v1.z, cName, rpr=1)
-
-        
-        
+        mc.xform(cName, matrix = flatMatrix(rotMat),  cp = False, ws = True)
+        mc.select(cName)
+        setPivotCurve()
+        mc.select(clear = True)
+        mc.move(v1.x, v1.y, v1.z, cName, rpr = True)
+    mc.select('dCurve*')
 
 
 #home = os.getenv("HOME")
@@ -239,7 +241,6 @@ mc.columnLayout( "testColumn", adjustableColumn = True)
 mc.text(label = "curveMaker: Select the faces to extrude from", width = 20, height = 20, backgroundColor = [0.2, 0.2, 0.2], parent = "testColumn")
 mc.textField("curveNameInput", text = "Input name here")
 cName = mc.textField("curveNameInput", query = True, text = True)
-print cName
 mc.button("curveButton", label = "OK", width = 50, height = 20, backgroundColor = [0.2, 0.2, 0.2], parent = "testColumn", command = 'curveMaker()')
 mc.showWindow()
 
