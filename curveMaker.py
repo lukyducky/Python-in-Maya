@@ -30,8 +30,9 @@ def getPolyInfo(inVertList, i):
     exp = mc.ls(inVertList, flatten = True)
     mc.select(clear = True)
     mc.select(exp[i])
-    return mc.polyNormalPerVertex(query = True, xyz=True)
-    
+    return mc.polyNormalPerVertex(query = True, xyz=True, rel = True)
+
+#flattens a list of vertices into one long list
 def flattenList(inVertList):
     exp = mc.ls(inVertList, flatten = True)
     mc.select(clear = True)
@@ -46,6 +47,7 @@ def flattenList(inVertList):
 """
 def getNorm(inList): #assumes there is at least 1 vert in the list. 
     x, y, z = 0, 0, 0
+    print x, y, z
     s = 0 #to count # of vects
     while (len(inList) > 0):
         x += inList[0]
@@ -96,38 +98,41 @@ def skewSymmCross(inVect):
     RETURNS: MMatrix
 
 """
-"""
-def findRotation(inV1, inV2):
+
+def findRotation(inV1, inV2): #from inV1 to inV2
     cross = inV1 ^ inV2
     theta = inV1.angle(inV2)
-    s = cross.length() * math.degrees(math.sin(theta))
-    c = (inV1 * inV2 )* math.degrees(math.cos(theta))
+    s = cross.length() * math.sin(math.degrees(theta))
+    c = (inV1 * inV2 )* math.sin(math.degrees(theta))
     skew = skewSymmCross(cross)
     skewSQ = skew * skew
     m = MMatrix() + skew +( skewSQ *((1 - c)/ (s * s)))
+
     return m
+
     """
-    
     #trying a different rotation matrix, 
     #assumes T-> thing to rotate to; N -> vect of thing to rotate
 def findRotation(T, N): 
-    B = T ^ N #getting the binormal
+    T.normalize();
+    N.normalize();
+    B = N ^ T #getting the binormal
     B.normalize()
     m = MMatrix() #makes an identity matrix
     setCell(m, T.x, 0, 0)
     setCell(m, T.y, 0, 1)
     setCell(m, T.z, 0, 2)
-    setCell(m, N.x, 1, 0)
-    setCell(m, N.y, 1, 1)
-    setCell(m, N.z, 1, 2)
-    setCell(m, B.x, 2, 0)
-    setCell(m, B.y, 2, 1)
-    setCell(m, B.z, 2, 2)
+    setCell(m, B.x, 1, 0)
+    setCell(m, B.y, 1, 1)
+    setCell(m, B.z, 1, 2)
+    setCell(m, N.x, 2, 0)
+    setCell(m, N.y, 2, 1)
+    setCell(m, N.z, 2, 2)
     for i in range(4):
         setCell(m, 0, i, 3)
         setCell(m, 0, 3, i)
     setCell(m, 1, 3, 3)
-    return m
+    return m"""
     
 
     
@@ -161,7 +166,6 @@ def setPivotCurve():
 
 def getPivCurve(inCurve):
     return MVector(*mc.getAttr(inCurve + '.cv[0]')[0])
-
 
 
 """
@@ -200,35 +204,28 @@ def curveMaker():
         cName = 'dCurve' + str(i)
         v1 = MVector(*mc.pointPosition(flatList[i]))
         vNorm = getNorm(getPolyInfo(flatList, i))
+
         mc.select(clear = True)
         vNorm.normalize()
         mc.duplicate(inCurve, name = cName)
         mc.select(cName)
         setPivotCurve()
         mc.select(clear = True)
-        mc.move( v1.x, v1.y, v1.z, cName, rpr=1)
-        cTanVect = getTangent(cName)
-        cTanVect.normalize()
-        
-        mc.makeIdentity(cName, apply = True, translate = True) #freeze translations
-               
-        """
-        mc.select(cName)
-        setPivotCurve()
-        mc.select(clear = True)
-        """
-        
-        #rotMat = findRotation(vNorm, cTanVect) #A
+        #mc.move( v1.x, v1.y, v1.z, cName, rpr=1)
+        #cTanVect = getTangent(cName)
+        #cTanVect.normalize()
+        cTan= mc.pointOnCurve(cName, nt = True )
+        cTanVect = MVector(cTan[0], cTan[1], cTan[2])
+
         rotMat = findRotation(cTanVect, vNorm) #B
+
         #printMatrix(rotMat)
-        #rotV = cTanVect.rotateBy(cTanVect.rotateTo(vNorm))
-        #rotV.normalize()
-        #printVect(rotV)
-        #mc.xform(cName, r = 1, rotation = [rotV.x, rotV.y, rotV.z]) 
         pivot = getPivCurve(cName)
-        mc.xform(cName, matrix = flatMatrix(rotMat), cp = False)
-        #, piv = [pivot.x, pivot.y, pivot.z]
-        mc.makeIdentity(cName, scale = True) #scale it down
+        #printVect(pivot)
+        mc.xform(cName, matrix = flatMatrix(rotMat),  ws = True, piv = (pivot.x, pivot.y, pivot.z))
+        mc.move( v1.x, v1.y, v1.z, cName, rpr=1)
+
+        
         
 
 
@@ -236,15 +233,10 @@ def curveMaker():
 #user = os.geteng("USER")
 #sys.path.appent(os.path.join(home:home.find(user), user, "Desktop"))
 
-
-
-mc.polyCube(n= 'name')
-mc.move(0.77, 0.58, -0.25)
-
 ###ui stuff?
 mc.window(title = "curveMaker", width = 300, height = 200)
 mc.columnLayout( "testColumn", adjustableColumn = True)
-mc.text(label = "curveMaker: Select the curve & faces to extrude from", width = 20, height = 20, backgroundColor = [0.2, 0.2, 0.2], parent = "testColumn")
+mc.text(label = "curveMaker: Select the faces to extrude from", width = 20, height = 20, backgroundColor = [0.2, 0.2, 0.2], parent = "testColumn")
 mc.textField("curveNameInput", text = "Input name here")
 cName = mc.textField("curveNameInput", query = True, text = True)
 print cName
@@ -253,4 +245,14 @@ mc.showWindow()
 
 #curveMaker('myCurve')
 
+"""
+TO DO:
+    Add in labels for text box
+    Add sliders for x, y, z rotations
+    Add in a label + text box for duplicated curve names
+    
+
+
+
+"""
 
